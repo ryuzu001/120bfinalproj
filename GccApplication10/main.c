@@ -1,11 +1,8 @@
-/*	Ruifeng Zhang rzhan016@ucr.edu
+/*	
  *	Ryan Yuzuki ryuzu001@ucr.edu
  *	Lab Section: 024
- *	Assignment: Lab #10  Exercise #2
- *	Exercise Description: Buttons are connected to PA0 and PA1. Output for PORTC 
- *  is initially 7. Pressing PA0 increments PORTC once (stopping at 9). Pressing
- *  PA1 decrements PORTC once (stopping at 0). If both buttons are depressed 
- *  (even if not initially simultaneously), PORTC resets to 0. USING LCD SCREEN
+ *	
+ *  Final project
  *
  *	I acknowledge all content contained herein, excluding template or example
  *	code, is my own original work.
@@ -19,17 +16,37 @@
 char hello[50] = "Hello World abcdefghijklmnop";
 char world[50] = "World!";
 
+void LCD_Custom_Char (unsigned char loc, unsigned char *msg)
+{
+	int i;
+	LCD_WriteCommand (0x40 + (loc*8));	/* Command 0x40 and onwards forces the device to point CGRAM address */
+	for(i=0;i<7;i++){	/* Write 8 byte for generation of 1 character */
+		LCD_WriteData(msg[i]);
+	}
+	LCD_WriteCommand(0x80);
+}
+
 int main() {
 	DDRA = 0xFF; PORTA = 0x00;
 	DDRD = 0xFF; PORTD = 0x00; // LCD control lines
 	
 	// Initializes the LCD display
+	//unsigned char Character1[8] = { 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00 }; 
+	// unsigned char Character1;
+	unsigned char battery[7] = {0x0e, 0x0a, 0x1b, 0x11, 0x11, 0x11, 0x1f};
+	/* Custom char set for alphanumeric LCD Module */
+	
+	
+	
 	LCD_init();
 	
-	LCD_ClearScreen();
+	LCD_WriteCommand(0x00);
+	LCD_Custom_Char(0, battery);  /* Build Character1 at position 0 */
+	LCD_WriteData(0);
 	
-	
-	LCD_DisplayString(1, hello);
+	//LCD_ClearScreen();
+	// LCD_DisplayString(1, hello);
+	while(1);
 }
 
 

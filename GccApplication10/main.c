@@ -9,23 +9,393 @@
  */
 
 #include <avr/io.h>
-#include <avr/interrupt.h>	
+#include <avr/interrupt.h>
+#include <avr/eeprom.h>	
 #include "io.c"
 #include "bit.h"
 #include "timer.h"
 
 enum mainMenu{init, topLeft, topRight, bottomLeft, bottomRight} mm;
+enum difficultyMenu{initDif, easy, medium, hard} diff;
+	
+unsigned char difficultyEasy = 1;
+unsigned char difficultyMedium = 0;	// default to medium
+unsigned char difficultyHard = 0;
+
+unsigned char inMenu = 1;
+unsigned char inDifficulty = 0;
 
 void displayMenu();
 void dispTopLeft();
 void dispTopRight();
 void dispBottomLeft();
 void dispBottomRight();
+void LCD_Custom_Char (unsigned char loc, unsigned char *msg);
+/*
 void topLeftSelect();
 void topRightSelect();
 void bottomLeftSelect();
-void bottomRightSelect();
+void bottomRightSelect(); */
+void setDifficulty();
+void dispDifEasy();
+void dispDifMedium();
+void dispDifHard();
 
+void setDifficulty(){
+	// PINA: 0 up
+	// PINA: 1 right
+	// PINA: 2 down
+	// PINA: 3 left
+	// PINA: 4 select
+
+	switch(diff){	// transitions
+		case initDif:
+			if(difficultyEasy)
+			diff = easy;
+			else if(difficultyMedium)
+			diff = medium;
+			else
+			diff = hard;
+		break;
+		case easy:
+			if(!GetBit(PINA, 1)){
+				diff = medium;
+			}
+			else if(!GetBit(PINA, 2)){
+				diff = hard;
+			}
+			else if(!GetBit(PINA, 4)){		// select
+				while(!GetBit(PINA, 4));	// wait for release
+				difficultyEasy = 1;		// set difficulty to easy
+				difficultyMedium = 0;
+				difficultyHard = 0;
+				
+				inDifficulty = 0;
+				inMenu = 1;
+			}
+			else{
+				diff = easy;
+			}
+		break;
+		case medium:
+			if(!GetBit(PINA, 3)){
+				diff = easy;
+			}
+			else if(!GetBit(PINA, 2)){
+				diff = hard;
+			}
+			else if(!GetBit(PINA, 4)){
+				while(!GetBit(PINA, 4));	// wait for release
+				difficultyEasy = 0;
+				difficultyMedium = 1;
+				difficultyHard = 0;
+				
+				inDifficulty = 0;
+				inMenu = 1;
+			}
+			else{
+				diff = medium;
+			}
+		break;
+		case hard:
+			if(!GetBit(PINA, 0)){
+				diff = easy;
+			}
+			else if(!GetBit(PINA, 1)){
+				diff = medium;
+			}
+			else if(!GetBit(PINA, 4)){
+				while(!GetBit(PINA, 4));	// wait for release
+				difficultyEasy = 0;
+				difficultyMedium = 0;
+				difficultyHard = 1;
+				
+				inDifficulty = 0;
+				inMenu = 1;
+			}
+			else{
+				diff = hard;
+			}
+		break;
+		default:
+		break;
+	}
+	switch(diff){	// actions
+		case initDif:
+			if(difficultyEasy){
+				dispDifEasy();
+			}
+			else if(difficultyMedium){
+				dispDifMedium();
+			}
+			else{
+				dispDifHard();
+			}
+		break;
+		case easy:
+			dispDifEasy();
+		break;
+		case medium:
+			dispDifMedium();
+		break;
+		case hard:
+			dispDifHard();
+		break;
+		default:
+			if(difficultyEasy){
+				dispDifEasy();
+			}
+			else if(difficultyMedium){
+				dispDifMedium();
+			}
+			else{
+				dispDifHard();
+			}
+		break;
+	}
+}
+void dispDifEasy(){
+	// EASY highlighted in the top left
+	
+	unsigned char selE[8] = {0x1f, 0x11, 0x17, 0x13, 0x17, 0x11, 0x1f, 0x00};
+	unsigned char selA[8] = {0x1f, 0x1b, 0x15, 0x11, 0x15, 0x15, 0x1f, 0x00};
+	unsigned char selS[8] = {0x1f, 0x11, 0x17, 0x11, 0x1d, 0x11, 0x1f, 0x00};	
+	unsigned char selY[8] = {0x1f, 0x15, 0x15, 0x1b, 0x1b, 0x1b, 0x1f, 0x00};	
+		
+	LCD_Custom_Char(0, selE);		// build at position 0...
+	LCD_Custom_Char(1, selA);
+	LCD_Custom_Char(2, selS);
+	LCD_Custom_Char(3, selY);
+	
+	unsigned char cur = 1;		// initialize cursor to 1
+	
+	LCD_Cursor(cur++);
+	LCD_WriteData(0);
+	LCD_Cursor(cur++);
+	LCD_WriteData(1);
+	LCD_Cursor(cur++);
+	LCD_WriteData(2);
+	LCD_Cursor(cur++);
+	LCD_WriteData(3);
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');	
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData('M');
+	LCD_Cursor(cur++);
+	LCD_WriteData('E');
+	LCD_Cursor(cur++);
+	LCD_WriteData('D');
+	LCD_Cursor(cur++);
+	LCD_WriteData('I');
+	LCD_Cursor(cur++);
+	LCD_WriteData('U');
+	LCD_Cursor(cur++);
+	LCD_WriteData('M');
+	LCD_Cursor(cur++);		// Newline here
+	LCD_WriteData('H');
+	LCD_Cursor(cur++);
+	LCD_WriteData('A');
+	LCD_Cursor(cur++);
+	LCD_WriteData('R');
+	LCD_Cursor(cur++);
+	LCD_WriteData('D');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+}
+void dispDifMedium(){
+	// Medium highlighted in the top right
+	
+	unsigned char selE[8] = {0x1f, 0x11, 0x17, 0x13, 0x17, 0x11, 0x1f, 0x00};
+	unsigned char selM[8] = {0x1f, 0x15, 0x11, 0x11, 0x15, 0x15, 0x1f, 0x00};
+	unsigned char selD[8] = {0x1f, 0x13, 0x15, 0x15, 0x15, 0x13, 0x1f, 0x00};
+	unsigned char selI[8] = {0x1f, 0x11, 0x1b, 0x1b, 0x1b, 0x11, 0x1f, 0x00};	
+	unsigned char selU[8] = {0x1f, 0x15, 0x15, 0x15, 0x15, 0x11, 0x1f, 0x00};	
+	
+	LCD_Custom_Char(0, selM);		// build at position 0...
+	LCD_Custom_Char(1, selE);
+	LCD_Custom_Char(2, selD);
+	LCD_Custom_Char(3, selI);
+	LCD_Custom_Char(4, selU);
+	
+	unsigned char cur = 1;		// initialize cursor to 1
+	
+	LCD_Cursor(cur++);
+	LCD_WriteData('E');
+	LCD_Cursor(cur++);
+	LCD_WriteData('A');
+	LCD_Cursor(cur++);
+	LCD_WriteData('S');
+	LCD_Cursor(cur++);
+	LCD_WriteData('Y');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(0);
+	LCD_Cursor(cur++);
+	LCD_WriteData(1);
+	LCD_Cursor(cur++);
+	LCD_WriteData(2);
+	LCD_Cursor(cur++);
+	LCD_WriteData(3);
+	LCD_Cursor(cur++);
+	LCD_WriteData(4);
+	LCD_Cursor(cur++);
+	LCD_WriteData(0);
+	LCD_Cursor(cur++);		// Newline here
+	LCD_WriteData('H');
+	LCD_Cursor(cur++);
+	LCD_WriteData('A');
+	LCD_Cursor(cur++);
+	LCD_WriteData('R');
+	LCD_Cursor(cur++);
+	LCD_WriteData('D');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+}
+void dispDifHard(){
+	// Medium highlighted in the top right
+	
+	unsigned char selH[8] = {0x1f, 0x15, 0x15, 0x11, 0x15, 0x15, 0x1f, 0x00};
+	unsigned char selA[8] = {0x1f, 0x1b, 0x15, 0x11, 0x15, 0x15, 0x1f, 0x00};	
+	unsigned char selD[8] = {0x1f, 0x13, 0x15, 0x15, 0x15, 0x13, 0x1f, 0x00};
+	unsigned char selR[8] = {0x1f, 0x13, 0x15, 0x13, 0x15, 0x15, 0x1f, 0x00};	
+	
+	LCD_Custom_Char(0, selH);		// build at position 0...
+	LCD_Custom_Char(1, selA);
+	LCD_Custom_Char(2, selR);
+	LCD_Custom_Char(3, selD);
+	
+	unsigned char cur = 1;		// initialize cursor to 1
+	
+	LCD_Cursor(cur++);
+	LCD_WriteData('E');
+	LCD_Cursor(cur++);
+	LCD_WriteData('A');
+	LCD_Cursor(cur++);
+	LCD_WriteData('S');
+	LCD_Cursor(cur++);
+	LCD_WriteData('Y');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData('M');
+	LCD_Cursor(cur++);
+	LCD_WriteData('E');
+	LCD_Cursor(cur++);
+	LCD_WriteData('D');
+	LCD_Cursor(cur++);
+	LCD_WriteData('I');
+	LCD_Cursor(cur++);
+	LCD_WriteData('U');
+	LCD_Cursor(cur++);
+	LCD_WriteData('M');
+	LCD_Cursor(cur++);		// Newline here
+	LCD_WriteData(0);
+	LCD_Cursor(cur++);
+	LCD_WriteData(1);
+	LCD_Cursor(cur++);
+	LCD_WriteData(2);
+	LCD_Cursor(cur++);
+	LCD_WriteData(3);
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+	LCD_Cursor(cur++);
+	LCD_WriteData(' ');
+}
 void LCD_Custom_Char (unsigned char loc, unsigned char *msg){
 	int i;
 	LCD_WriteCommand (0x40 + (loc*8));	/* Command 0x40 for CGRAM */
@@ -367,8 +737,6 @@ void dispBottomLeft(){
 	LCD_Cursor(cur++);
 	LCD_WriteData('R');
 }
-
-
 void displayMenu(){
 	// select difficulty
 	// set time
@@ -379,6 +747,7 @@ void displayMenu(){
 	// PINA: 1 right
 	// PINA: 2 down
 	// PINA: 3 left
+	// PINA: 4 select
 	
 	
 	switch(mm){			// transitions
@@ -397,11 +766,16 @@ void displayMenu(){
 			}
 		break;
 		case topRight:
-			if(!GetBit(PINA, 3)){
+			if(!GetBit(PINA, 3)){	// left
 				mm = topLeft;
 			}
-			else if(!GetBit(PINA, 2)){
+			else if(!GetBit(PINA, 2)){	// down
 				mm = bottomRight;
+			}
+			else if(!GetBit(PINA, 4)){	// select 'difficulty'
+				while(!GetBit(PINA, 4));	// wait for release
+				inMenu = 0;	// no longer in menu
+				inDifficulty = 1;	// in difficulty menu
 			}
 			else{
 				mm = topRight;
@@ -458,18 +832,27 @@ void displayMenu(){
 int main() {
 	DDRA = 0x00; PORTA = 0xFF; // A input
 	DDRB = 0xFF; PORTB = 0x00; // B output
-	DDRD = 0xFF; PORTD = 0x00; // LCD control lines
+	DDRD = 0xFF; PORTD = 0x00; // LCD control lines (output)
 
 	LCD_init();
 	
 	LCD_WriteCommand(0x38); /* function set */
 	LCD_WriteCommand(0x0c); /* display on,cursor off,blink off */
-	TimerSet(1);
+	TimerSet(1);	// until we start blinking lights, no need to set timer just yet
 	TimerOn(); 
+	
+	mm = init;
+	diff = initDif;
 	
 	LCD_ClearScreen();
 	while(1){	
-		displayMenu();
+		if(inMenu){
+			displayMenu();
+		}
+		if(inDifficulty){
+			setDifficulty();
+		}
+		
 		while(!TimerFlag);
 		TimerFlag = 0;
 	}

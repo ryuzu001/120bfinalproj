@@ -16,11 +16,19 @@
 #include "timer.h"
 #include "nokia5110.c"
 
-
+#define CLOCK		PORTA7
+#define LATCH		PORTA6
+#define DATA		PORTA5
+#define SNES_PORT	PORTA
+#define SNES_PIN	PINA
 
 enum mainMenu{init, topLeft, topRight, bottomLeft, bottomRight} mm;
 enum difficultyMenu{initDif, easy, medium, hard} diff;
 enum timeMenu{initTime, sec30, sec60, sec90} time_s;
+	
+unsigned char EEMEM eeprom_array[10];		// array to hold eeprom values.
+// values: eeprom[0] is the difficulty
+//		   eeprom[1] is the time
 	
 unsigned char difficulty = 1;	// diffculty - 0 easy, 1 medium 2 hard. default to medium.
 
@@ -29,6 +37,7 @@ unsigned char gameTime = 60;	// gametime in seconds
 unsigned char inMenu = 1;		// start in the main menu
 unsigned char inDifficulty = 0;
 unsigned char inTime = 0;
+unsigned char inGame = 0;
 
 void displayMenu();
 void dispTopLeft();
@@ -45,6 +54,10 @@ void setTime();
 void dispTime30();
 void dispTime60();
 void dispTime90();
+
+void SNES_init();
+unsigned char readSNES();
+void eraseEEPROM();
 
 //////////////////////////////
 
@@ -73,6 +86,8 @@ void setTime(){
 			else if(!GetBit(PINA, 4)){
 				while(!GetBit(PINA, 4));
 				gameTime = 30;
+				eeprom_write_word(&eeprom_array[0], difficulty);
+				eeprom_write_word(&eeprom_array[1], gameTime);
 				
 				inTime = 0;
 				inMenu = 1;
@@ -90,6 +105,8 @@ void setTime(){
 			else if(!GetBit(PINA, 4)){
 				while(!GetBit(PINA, 4));
 				gameTime = 60;
+				eeprom_write_word(&eeprom_array[0], difficulty);
+				eeprom_write_word(&eeprom_array[1], gameTime);
 				
 				inTime = 0;
 				inMenu = 1;
@@ -107,6 +124,8 @@ void setTime(){
 			else if(!GetBit(PINA, 4)){
 				while(!GetBit(PINA, 4));
 				gameTime = 90;
+				eeprom_write_word(&eeprom_array[0], difficulty);
+				eeprom_write_word(&eeprom_array[1], gameTime);
 				
 				inTime = 0;
 				inMenu = 1;
@@ -398,7 +417,7 @@ void setDifficulty(){
 			diff = easy;
 			else if(difficulty == 1)
 			diff = medium;
-			else
+			else 
 			diff = hard;
 		break;
 		case easy:
@@ -411,6 +430,8 @@ void setDifficulty(){
 			else if(!GetBit(PINA, 4)){		// select
 				while(!GetBit(PINA, 4));	// wait for release
 				difficulty = 0;				// set to easy
+				eeprom_write_word(&eeprom_array[0], difficulty);
+				eeprom_write_word(&eeprom_array[1], gameTime);
 				
 				inDifficulty = 0;
 				inMenu = 1;
@@ -429,6 +450,8 @@ void setDifficulty(){
 			else if(!GetBit(PINA, 4)){
 				while(!GetBit(PINA, 4));	// wait for release
 				difficulty = 1;		// medium
+				eeprom_write_word(&eeprom_array[0], difficulty);
+				eeprom_write_word(&eeprom_array[1], gameTime);
 				
 				inDifficulty = 0;
 				inMenu = 1;
@@ -447,6 +470,8 @@ void setDifficulty(){
 			else if(!GetBit(PINA, 4)){
 				while(!GetBit(PINA, 4));	// wait for release
 				difficulty = 2;				// hard
+				eeprom_write_word(&eeprom_array[0], difficulty);
+				eeprom_write_word(&eeprom_array[1], gameTime);
 				
 				inDifficulty = 0;
 				inMenu = 1;
@@ -480,15 +505,6 @@ void setDifficulty(){
 			dispDifHard();
 		break;
 		default:
-			if(difficulty == 0){
-				dispDifEasy();
-			}
-			else if(difficulty == 1){
-				dispDifMedium();
-			}
-			else{
-				dispDifHard();
-			}
 		break;
 	}
 }
@@ -1101,6 +1117,11 @@ void displayMenu(){
 			else if(!GetBit(PINA, 2)){
 				mm = bottomLeft;
 			}
+			else if(!GetBit(PINA, 4)){	// select "play"
+				while(!GetBit(PINA, 4));
+				inMenu = 0;
+				inGame = 1;
+			}
 			else{
 				mm = topLeft;
 			}
@@ -1174,8 +1195,41 @@ void displayMenu(){
 	}
 }
 
-void playGame(){
+void SNES_init() {
+	SNES_PORT |= (0x01 << CLOCK);
+	SNES_PORT |= (0x01 << LATCH);
+}
+unsigned char readSNES(){
 	
+	unsigned char data = 0x00;
+
+	SNES_PORT |= (0x01 << LATCH);
+	SNES_PORT &= ~(0x01 << LATCH);
+	// B, Y, SELECT, START, UP, DOWN, LEFT, RIGHT, A, X, L, R, NA, NA, NA, NA
+	
+	data = ((SNES_PIN & (0x01 << DATA)) >> DATA);
+
+	for(int i = 0; i > 16; i++){
+		SNES_PORT &= ~(0x01 << CLOCK);
+		data = data << 1;
+		data = data | ((SNES_PIN & (0x01 << DATA)) >> DATA);
+		SNES_PORT |= (0x01 << CLOCK);
+		PORTC = SNES_PIN;
+	}
+	
+
+	return data;
+}
+void eraseEEPROM(){
+	unsigned char erase = 999;
+	eeprom_write_word(&eeprom_array[0], erase);	// 
+	eeprom_write_word(&eeprom_array[1], erase);	// 
+	gameTime = erase;
+	difficulty = erase;
+}
+
+void playGame(){
+	nokia_lcd_ingame();
 }
 
 int main() {
@@ -1185,6 +1239,7 @@ int main() {
 
 	LCD_init();
 	nokia_lcd_init();
+	SNES_init();
 	
 	LCD_WriteCommand(0x38); /* function set */
 	LCD_WriteCommand(0x0c); /* display on,cursor off,blink off */
@@ -1197,6 +1252,12 @@ int main() {
 	TimerSet(timerTime);	// until we start blinking lights, no need to set timer just yet
 	TimerOn(); 
 	
+	//eeprom_write_word(&eeprom_array[0], difficulty);	// default to difficulty medium
+	//eeprom_write_word(&eeprom_array[1], gameTime);	// default to 60 seconds
+	
+	difficulty = eeprom_read_word(&eeprom_array[0]);
+	gameTime = eeprom_read_word(&eeprom_array[1]);
+	
 	mm = init;
 	diff = initDif;
 	time_s = initTime;
@@ -1207,6 +1268,7 @@ int main() {
 	
 	LCD_ClearScreen();
 	while(1){	
+		nokia_lcd_menu(gameTime, difficulty);		// sets the Nokia LCD to display time and difficulty
 		if(inMenu){
 			displayMenu();
 		}
@@ -1216,7 +1278,13 @@ int main() {
 		if(inTime){
 			setTime();
 		}
-		nokia_lcd_menu(gameTime, difficulty);		// sets the Nokia LCD to display time and difficulty
+		while(inGame){
+			playGame();
+		}
+		unsigned char controller = ~readSNES();		// B press = reset EEPROM
+		if(controller & 0x01 == 0x01){
+			eraseEEPROM();
+		}
 		/*
 		if(i >= period1second){
 			secPassed++;

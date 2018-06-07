@@ -59,12 +59,12 @@ struct questionHard{
 	
 unsigned char difficulty = 1;	// diffculty - 0 easy, 1 medium 2 hard. default to medium.
 unsigned char gameTime = 60;	// gametime in seconds
-unsigned char score = 0;
+
 time_t t;
 
 unsigned int totalGameTime = 0;
 //unsigned short period1second = 12.8;	// speed up - go down. Slow down - go up
-unsigned short period1second = 12.8;
+unsigned short period1second = 19;
 int timeRemaining = 0;
 int secPassed = 0;
 
@@ -1275,7 +1275,7 @@ void endgame(){
 	nokia_lcd_write_string("Game Over!", 1);
 	nokia_lcd_set_cursor(0, 10);
 	nokia_lcd_write_string("You scored ", 1);
-	if(score == 0)
+	if(score <= 0)
 	nokia_lcd_write_string("0", 1);
 	else if(score == 1)
 	nokia_lcd_write_string("1", 1);
@@ -1389,7 +1389,7 @@ void playQuestionEasy(struct questionEasy q){
 			while(!GetBit(PINA, 1));
 			if(q.qid == 3 || q.qid == 4
 			|| q.qid == 12 || q.qid == 17
-			|| q.qid == 18)
+			|| q.qid == 18 || q.qid == 7)
 				questionCorrect++;
 			strcat(str2, "- ");
 			str2length++;
@@ -1471,53 +1471,25 @@ void playQuestionMedium(struct questionMedium q){
 	while (str2length < 3)
 	{
 		if(!GetBit(PINA, 0)){
-			while(!GetBit(PINA, 0)){
-				if(timeRemaining >= period1second){
-					secPassed++;
-					timeRemaining = 0;
-				}
-				else
-				timeRemaining++;
-			}
+			while(!GetBit(PINA, 0));
 			strcat(an, "+");
 			strcat(str2, "+ ");
 			str2length++;
 		}
 		else if(!GetBit(PINA, 1)){
-			while(!GetBit(PINA, 1)){
-				if(timeRemaining >= period1second){
-					secPassed++;
-					timeRemaining = 0;
-				}
-				else
-				timeRemaining++;
-			}
+			while(!GetBit(PINA, 1));
 			strcat(an, "-");
 			strcat(str2, "- ");
 			str2length++;
 		}
 		else if(!GetBit(PINA, 2)){
-			while(!GetBit(PINA, 2)){
-				if(timeRemaining >= period1second){
-					secPassed++;
-					timeRemaining = 0;
-				}
-				else
-				timeRemaining++;
-			}
+			while(!GetBit(PINA, 2));
 			strcat(an, "/");
 			strcat(str2, "/ ");
 			str2length++;
 		}
 		else if(!GetBit(PINA, 3)){
-			while(!GetBit(PINA, 3)){
-				if(timeRemaining >= period1second){
-					secPassed++;
-					timeRemaining = 0;
-				}
-				else
-				timeRemaining++;
-			}
+			while(!GetBit(PINA, 3));
 			strcat(an, "*");
 			strcat(str2, "* ");
 			str2length++;
@@ -1538,6 +1510,7 @@ void playQuestionMedium(struct questionMedium q){
 			endgame();
 			inGame = 0;
 			inMenu = 1;
+			break;
 		}
 	}
 		
@@ -1690,6 +1663,7 @@ void playQuestionMedium(struct questionMedium q){
 			score--;
 		}
 }
+
 void playQuestionHard(struct questionHard q){
 	
 	char str[50];
@@ -1723,56 +1697,29 @@ void playQuestionHard(struct questionHard q){
 	// PINA: 2 down
 	// PINA: 3 left
 	// PINA: 4 select
+	unsigned char cur = 17;
 	while (str2length < 4)
 	{
 		if(!GetBit(PINA, 0)){
-			while(!GetBit(PINA, 0)){
-				if(timeRemaining >= period1second){
-					secPassed++;
-					timeRemaining = 0;
-				}
-				else
-				timeRemaining++;
-			}
+			while(!GetBit(PINA, 0));
 			strcat(an, "+");
 			strcat(str2, "+ ");
 			str2length++;
 		}
 		else if(!GetBit(PINA, 1)){
-			while(!GetBit(PINA, 1)){
-				if(timeRemaining >= period1second){
-					secPassed++;
-					timeRemaining = 0;
-				}
-				else
-				timeRemaining++;
-			}
+			while(!GetBit(PINA, 1));
 			strcat(an, "-");
 			strcat(str2, "- ");
 			str2length++;
 		}
 		else if(!GetBit(PINA, 2)){
-			while(!GetBit(PINA, 2)){
-				if(timeRemaining >= period1second){
-					secPassed++;
-					timeRemaining = 0;
-				}
-				else
-				timeRemaining++;
-			}
+			while(!GetBit(PINA, 2));
 			strcat(an, "/");
 			strcat(str2, "/ ");
 			str2length++;
 		}
 		else if(!GetBit(PINA, 3)){
-			while(!GetBit(PINA, 3)){
-				if(timeRemaining >= period1second){
-					secPassed++;
-					timeRemaining = 0;
-				}
-				else
-				timeRemaining++;
-			}
+			while(!GetBit(PINA, 3));
 			strcat(an, "*");
 			strcat(str2, "* ");
 			str2length++;
@@ -1785,160 +1732,158 @@ void playQuestionHard(struct questionHard q){
 		timeRemaining++;
 		nokia_lcd_ingame(score, gameTime-secPassed);
 		//delay_ms(500);		// change this to not mess with timing
-		LCD_Cursor(17);
-		for(i = 0; i < str2length; i++) {
-			LCD_WriteData(str2[i]);
-		}
+		LCD_DisplayStringNoErase(17, str2);
 		if(secPassed >= gameTime){
 			endgame();
 			inGame = 0;
 			inMenu = 1;
+			break;
 		}
 	}
 	
 	// Check answers here - question id's vs input
 	if(q.qid == 0){
-		if(an[1] == '+' && an[2] == '+'){
+		if(an[1] == '*' && an[2] == '/' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 1){
-		if(an[1] == '+' && an[2] == '*'){
+		if(an[1] == '-' && an[2] == '*' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 2){
-		if(an[1] == '*' && an[2] == '+'){
+		if(an[1] == '*' && an[2] == '/' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 3){
-		if(an[1] == '*' && an[2] == '-'){
+		if(an[1] == '+' && an[2] == '+' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 4){
-		if(an[1] == '-' && an[2] == '/'){
+		if(an[1] == '+' && an[2] == '*' && an[3] == '-'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 5){
-		if(an[1] == '/' && an[2] == '+'){
+		if(an[1] == '*' && an[2] == '+' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 6){
-		if(an[1] == '+' && an[2] == '/'){
+		if(an[1] == '*' && an[2] == '-' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 7){
-		if(an[1] == '-' && an[2] == '+'){
+		if(an[1] == '-' && an[2] == '-' && an[3] == '-'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 8){
-		if(an[1] == '*' && an[2] == '*'){
+		if(an[1] == '-' && an[2] == '+' && an[3] == '*'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 9){
-		if(an[1] == '-' && an[2] == '*'){
+		if(an[1] == '+' && an[2] == '+' && an[3] == '-'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 10){
-		if(an[1] == '/' && an[2] == '/'){
+		if(an[1] == '*' && an[2] == '*' && an[3] == '*'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 11){
-		if(an[1] == '*' && an[2] == '+'){
+		if(an[1] == '-' && an[2] == '*' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 12){
-		if(an[1] == '+' && an[2] == '*'){
+		if(an[1] == '+' && an[2] == '+' && an[3] == '/'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 13){
-		if(an[1] == '+' && an[2] == '/'){
+		if(an[1] == '-' && an[2] == '/' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 14){
-		if(an[1] == '*' && an[2] == '-'){
+		if(an[1] == '*' && an[2] == '/' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 15){
-		if(an[1] == '-' && an[2] == '/'){
+		if(an[1] == '+' && an[2] == '/' && an[3] == '-'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 16){
-		if(an[1] == '/' && an[2] == '+'){
+		if(an[1] == '-' && an[2] == '*' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 17){
-		if(an[1] == '-' && an[2] == '*'){
+		if(an[1] == '+' && an[2] == '/' && an[3] == '/'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 18){
-		if(an[1] == '*' && an[2] == '-'){
+		if(an[1] == '/' && an[2] == '+' && an[3] == '/'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 19){
-		if(an[1] == '/' && an[2] == '*'){
+		if(an[1] == '*' && an[2] == '+' && an[3] == '+'){
 			score++;
 		}
 		else
 		score--;
 	}
 	if(q.qid == 20){
-		if(an[1] == '/' && an[2] == '*'){
+		if(an[1] == '*' && an[2] == '/' && an[3] == '-'){
 			score++;
 		}
 		else
@@ -1946,9 +1891,12 @@ void playQuestionHard(struct questionHard q){
 	}
 }
 
+
 void playGame(){
 	
 		// *(NUMBERS), answer, question ID
+	secPassed = 0;	
+		
 	struct questionEasy q0 = {"0","1","1",0};		// 0 + 1 = 1
 	struct questionEasy q1 = {"6","8","48",1};	// 6 * 8 = 48
 	struct questionEasy q2 = {"40","4","10",2};	// 40 / 4 = 10

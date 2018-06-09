@@ -1,5 +1,6 @@
-vs/
-GccApplication10.atlsn
+.vs/
+GccApplication10.atsln
 GccApplication10/Debug
 GccApplication10/GccApplication10.componentinfo.xml
 GccApplication10.cproj
+*.cproj

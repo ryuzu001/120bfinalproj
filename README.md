@@ -1,7 +1,7 @@
 # Countdown - UCR EE/CS 120B Final Project
 
 This is my UCR EE/CS120B Embedded Systems Final project for Spring 2018. 
-My project is a custom implementation of the gameshow Countdown on an ATMEL ATMEGA1284 Microcontroller. 
+My project is a custom implementation of the gameshow Countdown on an ATMEGA1284 Microcontroller. 
 Countdown is a math-based British TV game show that has the participants compete to use all given numbers in a math equation to equal a set number in a given amount of time (usually 30 seconds). For example, the contestants are given the numbers
 
 1 2 and 3, and the math equation must equal 6, one possible answer would be
@@ -28,7 +28,7 @@ Complexities used in this project that were not taught in class:
 
 - Saving difficulty and time settings to EEPROM
 
-- SNES controller for input (See `unsigned char readSNES()` in `main.c`)
+- SNES controller for input (See `unsigned char readSNES()` in `main.c`) (Pinout/protocall from [here](https://gamefaqs.gamespot.com/snes/916396-super-nintendo/faqs/5395))
 
 # Pinout
 
